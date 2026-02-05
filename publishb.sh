@@ -1,0 +1,2 @@
+docker_tool publish -f common/kubernetes/apps/live-semantic-map/docker-config.docker.json.jsonnet --use-make8 --verify-pulling-image
+k8s_cli apply -f common/kubernetes/apps/live-semantic-map/gz/dev.yaml.jsonnet -n map-dev
