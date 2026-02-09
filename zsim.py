@@ -109,6 +109,9 @@ def geometry_neighbor(argv):
             subprocess.run([profiler_binary_path, 'upload'], check=True)
 
 
+def lane_confidence(argv):
+    pass
+
 if __name__ == '__main__':
     # app.run(geometry_neighbor)
     app.run(common)
