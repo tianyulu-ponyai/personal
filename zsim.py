@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 from absl import app, flags
-from typing import List
+from typing import List, Dict
 import subprocess
 import os
 
 GEOMETRY_BASED_NEIGHBOR_CALCULATION_RELATED_ISSUE_REMOTE_DIRS: List[str] = [
-    '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20260109/k9011-144638-1767941609.atomic.zip',
-    '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20260102/k9043-102255-1767324907.atomic.zip',
+    # https://jira.corp.pony.ai/browse/RTI-41772295
     '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20260107/k9043-112624-1767763796.atomic.zip',
+    # https://jira.corp.pony.ai/browse/RTI-41565329
+    '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20260102/k9043-102255-1767324907.atomic.zip',
+    # https://jira.corp.pony.ai/browse/RTI-41861988
+    '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20260109/k9011-144638-1767941609.atomic.zip',
+    # https://jira.corp.pony.ai/browse/RTI-41564778
     '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20260102/k9042-094931-1767324699.atomic.zip',
     # https://jira.corp.pony.ai/browse/RTI-42778510
     '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20260129/k9216-100455-1769655966.atomic.zip',
-    # 长距离，latency报告中表现最差的record
+    # jenkins latency-diff 20251103_k8101_192331_1762169901__1762170588-traffic-flow
     '/guangzhou/truncated_data_v2/manual/guangzhou/20250926/k8106-074958-1758847477__1758847974.atomic.zip',
 ]
 
@@ -19,57 +23,63 @@ LANE_CONFIDENCE_RELATED_ISSUE_REMOTE_DIRS: List[str] = [
     '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20251228/p7050-084545-1766897859.atomic.zip',
 ]
 
-ISSUE_REMOTE_DIRS: List[List[str]] = [
-    GEOMETRY_BASED_NEIGHBOR_CALCULATION_RELATED_ISSUE_REMOTE_DIRS,
-    LANE_CONFIDENCE_RELATED_ISSUE_REMOTE_DIRS,
-]
-
-flags.DEFINE_enum(
-    'mode',
-    'olive',
-    ['olive', 'profile'],
-    'Running mode',
-)
-
-flags.DEFINE_bool(
-    'build',
-    False,
-    'Whether to build before running binary',
-)
-
-flags.DEFINE_bool(
-    'geo',
-    True,
-    'Whether to enable geometry-based neighbor calculation',
-)
-
-flags.DEFINE_string(
-    'dir',
-    '',
-    'The remote directory for record',
-)
-
-flags.DEFINE_bool(
-    'upload',
-    False,
-    'Whether to upload CPU flame graph onto web',
-)
-
-flags.DEFINE_integer(
-    'buffer_size',
-    256,
-    'The size of simulation buffer',
-)
+ISSUE_REMOTE_DIRS: Dict[str, List[str]] = {
+    'common': GEOMETRY_BASED_NEIGHBOR_CALCULATION_RELATED_ISSUE_REMOTE_DIRS,
+    'geometry_neighbor': GEOMETRY_BASED_NEIGHBOR_CALCULATION_RELATED_ISSUE_REMOTE_DIRS,
+    'lane_confidence': LANE_CONFIDENCE_RELATED_ISSUE_REMOTE_DIRS
+}
 
 FLAGS = flags.FLAGS
 
-# flags.alias_flag('g', 'enable_geometry')
-os.chdir('/home/tianyulu/work/ponyai/.sub-repos')
+
+def define_flags():
+    flags.DEFINE_bool(
+        'build',
+        False,
+        'Whether to build before running binary',
+    )
+
+    flags.DEFINE_enum(
+        'mode',
+        'olive',
+        ['olive', 'profile'],
+        'Running mode',
+    )
+
+    flags.DEFINE_bool(
+        'geo',
+        True,
+        'Whether to enable geometry-based neighbor calculation',
+    )
+
+    flags.DEFINE_string(
+        'dir',
+        '',
+        'The remote directory for record',
+    )
+
+    flags.DEFINE_bool(
+        'upload',
+        False,
+        'Whether to upload CPU flame graph onto web',
+    )
+
+    flags.DEFINE_integer(
+        'buffer_size',
+        256,
+        'The size of simulation buffer',
+    )
+
+    flags.DEFINE_integer(
+        'index',
+        0,
+        'The index of the remote directory in the List that should be used',
+    )
 
 
 def common(argv):
     if len(FLAGS.dir) == 0:
-        FLAGS.dir = ISSUE_REMOTE_DIRS[0][USE_DIR_INDEX]
+        FLAGS.dir = ISSUE_REMOTE_DIRS['common'][FLAGS.index]
 
     olive_target = 'olive_main'
     if FLAGS.build:
@@ -90,7 +100,7 @@ def common(argv):
 
 def geometry_neighbor(argv):
     if len(FLAGS.dir) == 0:
-        FLAGS.dir = ISSUE_REMOTE_DIRS[0][USE_DIR_INDEX]
+        FLAGS.dir = ISSUE_REMOTE_DIRS['geometry_neighbor'][FLAGS.index]
 
     olive_target = 'olive_main'
     simulation_target = 'simulation_main'
@@ -139,14 +149,14 @@ def geometry_neighbor_test(argv):
 
 def lane_confidence(argv):
     if len(FLAGS.dir) == 0:
-        FLAGS.dir = ISSUE_REMOTE_DIRS[1][USE_DIR_INDEX]
+        FLAGS.dir = ISSUE_REMOTE_DIRS['lane_confidence'][FLAGS.index]
     pass
 
 
-USE_DIR_INDEX = 0
-
 if __name__ == '__main__':
+    os.chdir('/home/tianyulu/work/ponyai/.sub-repos')
+    define_flags()
     # app.run(common)
-    app.run(geometry_neighbor)
+    # app.run(geometry_neighbor)
     # app.run(geometry_neighbor_test)
-    # app.run(lane_confidence)
+    app.run(lane_confidence)
