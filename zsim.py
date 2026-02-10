@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 from absl import app, flags
+from typing import List
 import subprocess
 import os
 
-GEOMETRY_BASED_NEIGHBOR_CALCULATION_RELATED_ISSUE_REMOTE_DIRS = [
+GEOMETRY_BASED_NEIGHBOR_CALCULATION_RELATED_ISSUE_REMOTE_DIRS: List[str] = [
     '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20260109/k9011-144638-1767941609.atomic.zip',
     '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20260102/k9043-102255-1767324907.atomic.zip',
     '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20260107/k9043-112624-1767763796.atomic.zip',
@@ -13,7 +14,15 @@ GEOMETRY_BASED_NEIGHBOR_CALCULATION_RELATED_ISSUE_REMOTE_DIRS = [
     # 长距离，latency报告中表现最差的record
     '/guangzhou/truncated_data_v2/manual/guangzhou/20250926/k8106-074958-1758847477__1758847974.atomic.zip',
 ]
-USE_DIR_INDEX = 0
+
+LANE_CONFIDENCE_RELATED_ISSUE_REMOTE_DIRS: List[str] = [
+    '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20251228/p7050-084545-1766897859.atomic.zip',
+]
+
+ISSUE_REMOTE_DIRS: List[List[str]] = [
+    GEOMETRY_BASED_NEIGHBOR_CALCULATION_RELATED_ISSUE_REMOTE_DIRS,
+    LANE_CONFIDENCE_RELATED_ISSUE_REMOTE_DIRS,
+]
 
 flags.DEFINE_enum(
     'mode',
@@ -36,14 +45,20 @@ flags.DEFINE_bool(
 
 flags.DEFINE_string(
     'dir',
-    f'{GEOMETRY_BASED_NEIGHBOR_CALCULATION_RELATED_ISSUE_REMOTE_DIRS[USE_DIR_INDEX]}',
+    '',
     'The remote directory for record',
 )
 
 flags.DEFINE_bool(
     'upload',
     False,
-    'Whether to upload flame graph onto web',
+    'Whether to upload CPU flame graph onto web',
+)
+
+flags.DEFINE_integer(
+    'buffer_size',
+    256,
+    'The size of simulation buffer',
 )
 
 FLAGS = flags.FLAGS
@@ -53,8 +68,12 @@ os.chdir('/home/tianyulu/work/ponyai/.sub-repos')
 
 
 def common(argv):
+    if len(FLAGS.dir) == 0:
+        FLAGS.dir = ISSUE_REMOTE_DIRS[0][USE_DIR_INDEX]
+
+    olive_target = 'olive_main'
     if FLAGS.build:
-        subprocess.run(['make8', 'build', 'olive_main'], check=True)
+        subprocess.run(['make8', 'build', olive_target], check=True)
 
     olive_binary_path = './make8-bin/common/tools/olive/olive_main'
 
@@ -63,13 +82,16 @@ def common(argv):
         f'--remote-dir={FLAGS.dir}',
         '--static_map_any_version',
         '--road_graph_any_version',
-        '--simulation_data_buffer_size=512',
+        f'--simulation_data_buffer_size={FLAGS.buffer_size}',
     ]
 
     subprocess.run([olive_binary_path] + olive_args, check=True)
 
 
 def geometry_neighbor(argv):
+    if len(FLAGS.dir) == 0:
+        FLAGS.dir = ISSUE_REMOTE_DIRS[0][USE_DIR_INDEX]
+
     olive_target = 'olive_main'
     simulation_target = 'simulation_main'
     if FLAGS.build:
@@ -86,7 +108,7 @@ def geometry_neighbor(argv):
         f'--remote-dir={FLAGS.dir}',
         '--static_map_any_version',
         '--road_graph_any_version',
-        '--simulation_data_buffer_size=512',
+        f'--simulation_data_buffer_size={FLAGS.buffer_size}',
         f'--enable_geometry_based_neighbor_calculation={str(FLAGS.geo).lower()}',
     ]
 
@@ -107,11 +129,7 @@ def geometry_neighbor(argv):
             subprocess.run([profiler_binary_path, 'upload'], check=True)
 
 
-def lane_confidence(argv):
-    pass
-
-
-def test(argv):
+def geometry_neighbor_test(argv):
     test_target = 'multi_frame_lane_info_generator_unit_test'
     test_binary_path = f'./make8-bin/map/pom/detected_map/online_map/{test_target}'
     if FLAGS.build:
@@ -119,7 +137,16 @@ def test(argv):
     subprocess.run(test_binary_path, check=True)
 
 
+def lane_confidence(argv):
+    if len(FLAGS.dir) == 0:
+        FLAGS.dir = ISSUE_REMOTE_DIRS[1][USE_DIR_INDEX]
+    pass
+
+
+USE_DIR_INDEX = 0
+
 if __name__ == '__main__':
-    # app.run(geometry_neighbor)
     # app.run(common)
-    app.run(test)
+    app.run(geometry_neighbor)
+    # app.run(geometry_neighbor_test)
+    # app.run(lane_confidence)
