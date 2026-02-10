@@ -20,7 +20,10 @@ GEOMETRY_BASED_NEIGHBOR_CALCULATION_RELATED_ISSUE_REMOTE_DIRS: List[str] = [
 ]
 
 LANE_CONFIDENCE_RELATED_ISSUE_REMOTE_DIRS: List[str] = [
+    # https://jira.corp.pony.ai/browse/RTI-41364507
     '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20251228/p7050-084545-1766897859.atomic.zip',
+    # https://jira.corp.pony.ai/browse/RTI-40669561
+    '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20251214/p7052-093153-1765683083.atomic.zip',
 ]
 
 ISSUE_REMOTE_DIRS: Dict[str, List[str]] = {
@@ -30,6 +33,19 @@ ISSUE_REMOTE_DIRS: Dict[str, List[str]] = {
 }
 
 FLAGS = flags.FLAGS
+
+TARGETS = {
+    'olive': 'olive_main',
+    'simulation': 'simulation_main',
+    'geometry_neighbor_test': 'multi_frame_lane_info_generator_unit_test',
+}
+
+BINARY_PATHS = {
+    'olive': './make8-bin/common/tools/olive/olive_main',
+    'simulation': './make8-bin/infrastructure/simulation/simulation_main',
+    'profile': './make8-bin/common/utils/profiler/profile_helper/profile_helper_cli_package',
+    'geometry_neighbor_test': './make8-bin/map/pom/detected_map/online_map/multi_frame_lane_info_generator_unit_test',
+}
 
 
 def define_flags():
@@ -85,8 +101,6 @@ def common(argv):
     if FLAGS.build:
         subprocess.run(['make8', 'build', olive_target], check=True)
 
-    olive_binary_path = './make8-bin/common/tools/olive/olive_main'
-
     olive_args = [
         '--simple-mode=detected_map',
         f'--remote-dir={FLAGS.dir}',
@@ -95,23 +109,18 @@ def common(argv):
         f'--simulation_data_buffer_size={FLAGS.buffer_size}',
     ]
 
-    subprocess.run([olive_binary_path] + olive_args, check=True)
+    subprocess.run([BINARY_PATHS['olive']] + olive_args, check=True)
 
 
 def geometry_neighbor(argv):
     if len(FLAGS.dir) == 0:
         FLAGS.dir = ISSUE_REMOTE_DIRS['geometry_neighbor'][FLAGS.index]
 
-    olive_target = 'olive_main'
-    simulation_target = 'simulation_main'
     if FLAGS.build:
         if FLAGS.mode == 'olive':
-            subprocess.run(['make8', 'build', olive_target], check=True)
+            subprocess.run(['make8', 'build', TARGETS['olive']], check=True)
         elif FLAGS.mode == 'profile':
-            subprocess.run(['make8', 'build', simulation_target], check=True)
-
-    olive_binary_path = './make8-bin/common/tools/olive/olive_main'
-    profiler_binary_path = './make8-bin/common/utils/profiler/profile_helper/profile_helper_cli_package'
+            subprocess.run(['make8', 'build', TARGETS['simulation']], check=True)
 
     olive_args = [
         '--simple-mode=detected_map',
@@ -132,19 +141,17 @@ def geometry_neighbor(argv):
     ]
 
     if FLAGS.mode == 'olive':
-        subprocess.run([olive_binary_path] + olive_args, check=True)
+        subprocess.run([BINARY_PATHS['olive']] + olive_args, check=True)
     elif FLAGS.mode == 'profile':
-        subprocess.run([profiler_binary_path] + profiler_args, check=True)
+        subprocess.run([BINARY_PATHS['profile']] + profiler_args, check=True)
         if FLAGS.upload:
-            subprocess.run([profiler_binary_path, 'upload'], check=True)
+            subprocess.run([BINARY_PATHS['profile'], 'upload'], check=True)
 
 
 def geometry_neighbor_test(argv):
-    test_target = 'multi_frame_lane_info_generator_unit_test'
-    test_binary_path = f'./make8-bin/map/pom/detected_map/online_map/{test_target}'
     if FLAGS.build:
-        subprocess.run(['make8', 'build', test_target], check=True)
-    subprocess.run(test_binary_path, check=True)
+        subprocess.run(['make8', 'build', TARGETS['geometry_neighbor_test']], check=True)
+    subprocess.run(BINARY_PATHS['geometry_neighbor_test'], check=True)
 
 
 def lane_confidence(argv):
@@ -156,6 +163,7 @@ def lane_confidence(argv):
 if __name__ == '__main__':
     os.chdir('/home/tianyulu/work/ponyai/.sub-repos')
     define_flags()
+
     # app.run(common)
     # app.run(geometry_neighbor)
     # app.run(geometry_neighbor_test)
