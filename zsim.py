@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-from absl import app, flags
-from typing import List, Dict
-import subprocess
 import os
+import subprocess
+from typing import Dict, List
+
+from absl import app, flags
 
 GEOMETRY_BASED_NEIGHBOR_CALCULATION_RELATED_ISSUE_REMOTE_DIRS: List[str] = [
     # https://jira.corp.pony.ai/browse/RTI-41772295
@@ -29,7 +30,7 @@ LANE_CONFIDENCE_RELATED_ISSUE_REMOTE_DIRS: List[str] = [
 ISSUE_REMOTE_DIRS: Dict[str, List[str]] = {
     'common': GEOMETRY_BASED_NEIGHBOR_CALCULATION_RELATED_ISSUE_REMOTE_DIRS,
     'geometry_neighbor': GEOMETRY_BASED_NEIGHBOR_CALCULATION_RELATED_ISSUE_REMOTE_DIRS,
-    'lane_confidence': LANE_CONFIDENCE_RELATED_ISSUE_REMOTE_DIRS
+    'lane_confidence': LANE_CONFIDENCE_RELATED_ISSUE_REMOTE_DIRS,
 }
 
 FLAGS = flags.FLAGS
@@ -157,7 +158,18 @@ def geometry_neighbor_test(argv):
 def lane_confidence(argv):
     if len(FLAGS.dir) == 0:
         FLAGS.dir = ISSUE_REMOTE_DIRS['lane_confidence'][FLAGS.index]
-    pass
+
+    olive_args = [
+        '--simple-mode=detected_map',
+        f'--remote-dir={FLAGS.dir}',
+        '--static_map_any_version',
+        '--road_graph_any_version',
+        f'--simulation_data_buffer_size={FLAGS.buffer_size}',
+    ]
+
+    if FLAGS.build:
+        subprocess.run(['make8', 'build', TARGETS['olive']], check=True)
+    subprocess.run([BINARY_PATHS['olive']] + olive_args, check=True)
 
 
 if __name__ == '__main__':
