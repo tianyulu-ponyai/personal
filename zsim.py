@@ -6,13 +6,13 @@ from typing import Dict, List
 from absl import app, flags
 
 GEOMETRY_BASED_NEIGHBOR_CALCULATION_RELATED_ISSUE_REMOTE_DIRS: List[str] = [
-    # https://jira.corp.pony.ai/browse/RTI-41772295
+    # https://jira.corp.pony.ai/browse/RTI-41772295 highway
     '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20260107/k9043-112624-1767763796.atomic.zip',
-    # https://jira.corp.pony.ai/browse/RTI-41565329
+    # https://jira.corp.pony.ai/browse/RTI-41565329 highway
     '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20260102/k9043-102255-1767324907.atomic.zip',
     # https://jira.corp.pony.ai/browse/RTI-41861988
     '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20260109/k9011-144638-1767941609.atomic.zip',
-    # https://jira.corp.pony.ai/browse/RTI-41564778
+    # https://jira.corp.pony.ai/browse/RTI-41564778 highway
     '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20260102/k9042-094931-1767324699.atomic.zip',
     # https://jira.corp.pony.ai/browse/RTI-42778510
     '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20260129/k9216-100455-1769655966.atomic.zip',
@@ -172,6 +172,23 @@ def lane_confidence(argv):
     subprocess.run([BINARY_PATHS['olive']] + olive_args, check=True)
 
 
+def overlap(argv):
+    if len(FLAGS.dir) == 0:
+        FLAGS.dir = ISSUE_REMOTE_DIRS['geometry_neighbor'][FLAGS.index]
+
+    olive_args = [
+        '--simple-mode=detected_map',
+        f'--remote-dir={FLAGS.dir}',
+        '--static_map_any_version',
+        '--road_graph_any_version',
+        f'--simulation_data_buffer_size={FLAGS.buffer_size}',
+    ]
+
+    if FLAGS.build:
+        subprocess.run(['make8', 'build', TARGETS['olive']], check=True)
+    subprocess.run([BINARY_PATHS['olive']] + olive_args, check=True)
+
+
 if __name__ == '__main__':
     os.chdir('/home/tianyulu/work/ponyai/.sub-repos')
     define_flags()
@@ -179,4 +196,5 @@ if __name__ == '__main__':
     # app.run(common)
     # app.run(geometry_neighbor)
     # app.run(geometry_neighbor_test)
-    app.run(lane_confidence)
+    # app.run(lane_confidence)
+    app.run(overlap)
