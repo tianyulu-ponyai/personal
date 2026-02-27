@@ -27,10 +27,16 @@ LANE_CONFIDENCE_RELATED_ISSUE_REMOTE_DIRS: List[str] = [
     '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20251214/p7052-093153-1765683083.atomic.zip',
 ]
 
+LANE_LANE_OVERLAP_RELATED_ISSUE_REMOTE_DIRS: List[str] = [
+    # jenkins latency-diff 20251103_k8101_192331_1762169901__1762170588-traffic-flow
+    '/guangzhou/truncated_data_v2/manual/guangzhou/20250926/k8106-074958-1758847477__1758847974.atomic.zip',
+]
+
 ISSUE_REMOTE_DIRS: Dict[str, List[str]] = {
     'common': GEOMETRY_BASED_NEIGHBOR_CALCULATION_RELATED_ISSUE_REMOTE_DIRS,
     'geometry_neighbor': GEOMETRY_BASED_NEIGHBOR_CALCULATION_RELATED_ISSUE_REMOTE_DIRS,
     'lane_confidence': LANE_CONFIDENCE_RELATED_ISSUE_REMOTE_DIRS,
+    'lane_lane_overlap': LANE_LANE_OVERLAP_RELATED_ISSUE_REMOTE_DIRS,
 }
 
 FLAGS = flags.FLAGS
@@ -157,7 +163,7 @@ def geometry_neighbor_test(argv):
 
 def lane_confidence(argv):
     if len(FLAGS.dir) == 0:
-        FLAGS.dir = ISSUE_REMOTE_DIRS['lane_confidence'][FLAGS.index]
+        FLAGS.dir = ISSUE_REMOTE_DIRS['lane_lane_overlap'][FLAGS.index]
 
     olive_args = [
         '--simple-mode=detected_map',
@@ -174,7 +180,13 @@ def lane_confidence(argv):
 
 def overlap(argv):
     if len(FLAGS.dir) == 0:
-        FLAGS.dir = ISSUE_REMOTE_DIRS['geometry_neighbor'][FLAGS.index]
+        FLAGS.dir = ISSUE_REMOTE_DIRS['lane_lane_overlap'][FLAGS.index]
+
+    if FLAGS.build:
+        if FLAGS.mode == 'olive':
+            subprocess.run(['make8', 'build', TARGETS['olive']], check=True)
+        elif FLAGS.mode == 'profile':
+            subprocess.run(['make8', 'build', TARGETS['simulation']], check=True)
 
     olive_args = [
         '--simple-mode=detected_map',
@@ -184,9 +196,21 @@ def overlap(argv):
         f'--simulation_data_buffer_size={FLAGS.buffer_size}',
     ]
 
-    if FLAGS.build:
-        subprocess.run(['make8', 'build', TARGETS['olive']], check=True)
-    subprocess.run([BINARY_PATHS['olive']] + olive_args, check=True)
+    profiler_args = [
+        'profile',
+        '--mode=cpu',
+        '--binary=./make8-bin/infrastructure/simulation/simulation_main',
+        f'--cwd={os.getcwd()}',
+        '--args',
+        ' '.join(olive_args),
+    ]
+
+    if FLAGS.mode == 'olive':
+        subprocess.run([BINARY_PATHS['olive']] + olive_args, check=True)
+    elif FLAGS.mode == 'profile':
+        subprocess.run([BINARY_PATHS['profile']] + profiler_args, check=True)
+        if FLAGS.upload:
+            subprocess.run([BINARY_PATHS['profile'], 'upload'], check=True)
 
 
 if __name__ == '__main__':
