@@ -44,13 +44,14 @@ FLAGS = flags.FLAGS
 TARGETS = {
     'olive': 'olive_main',
     'simulation': 'simulation_main',
+    'profiler': 'profile_helper_cli',
     'geometry_neighbor_test': 'multi_frame_lane_info_generator_unit_test',
 }
 
 BINARY_PATHS = {
     'olive': './make8-bin/common/tools/olive/olive_main',
     'simulation': './make8-bin/infrastructure/simulation/simulation_main',
-    'profile': './make8-bin/common/utils/profiler/profile_helper/profile_helper_cli_package',
+    'profile': './make8-bin/common/utils/profiler/profile_helper/profile_helper_cli',
     'geometry_neighbor_test': './make8-bin/map/pom/detected_map/online_map/multi_frame_lane_info_generator_unit_test',
 }
 
@@ -100,13 +101,25 @@ def define_flags():
     )
 
 
+def build_olive():
+    subprocess.run(['make8', 'build', TARGETS['olive']], check=True)
+
+
+def build_simulation():
+    subprocess.run(['make8', 'build', TARGETS['simulation']], check=True)
+
+
+def build_profiler():
+    subprocess.run(['make8', 'build', TARGETS['profiler']], check=True)
+
+
 def common(argv):
     if len(FLAGS.dir) == 0:
         FLAGS.dir = ISSUE_REMOTE_DIRS['common'][FLAGS.index]
 
     olive_target = 'olive_main'
     if FLAGS.build:
-        subprocess.run(['make8', 'build', olive_target], check=True)
+        build_olive()
 
     olive_args = [
         '--simple-mode=detected_map',
@@ -125,9 +138,9 @@ def geometry_neighbor(argv):
 
     if FLAGS.build:
         if FLAGS.mode == 'olive':
-            subprocess.run(['make8', 'build', TARGETS['olive']], check=True)
+            build_olive()
         elif FLAGS.mode == 'profile':
-            subprocess.run(['make8', 'build', TARGETS['simulation']], check=True)
+            build_profiler()
 
     olive_args = [
         '--simple-mode=detected_map',
@@ -138,13 +151,20 @@ def geometry_neighbor(argv):
         f'--enable_geometry_based_neighbor_calculation={str(FLAGS.geo).lower()}',
     ]
 
+    simulation_args = [
+        '--simple-mode=detected_map',
+        f'--remote-dir={FLAGS.dir}',
+        '--static_map_any_version',
+        '--road_graph_any_version',
+        f'--enable_geometry_based_neighbor_calculation={str(FLAGS.geo).lower()}',
+    ]
+
     profiler_args = [
         'profile',
         '--mode=cpu',
-        '--binary=./make8-bin/infrastructure/simulation/simulation_main',
         f'--cwd={os.getcwd()}',
-        '--args',
-        ' '.join(olive_args),
+        f"--binary={BINARY_PATHS['simulation']}",
+        f"--args={' '.join(simulation_args)}"
     ]
 
     if FLAGS.mode == 'olive':
@@ -165,6 +185,9 @@ def lane_confidence(argv):
     if len(FLAGS.dir) == 0:
         FLAGS.dir = ISSUE_REMOTE_DIRS['lane_lane_overlap'][FLAGS.index]
 
+    if FLAGS.build:
+        build_olive()
+
     olive_args = [
         '--simple-mode=detected_map',
         f'--remote-dir={FLAGS.dir}',
@@ -173,8 +196,6 @@ def lane_confidence(argv):
         f'--simulation_data_buffer_size={FLAGS.buffer_size}',
     ]
 
-    if FLAGS.build:
-        subprocess.run(['make8', 'build', TARGETS['olive']], check=True)
     subprocess.run([BINARY_PATHS['olive']] + olive_args, check=True)
 
 
@@ -184,9 +205,9 @@ def overlap(argv):
 
     if FLAGS.build:
         if FLAGS.mode == 'olive':
-            subprocess.run(['make8', 'build', TARGETS['olive']], check=True)
+            build_olive()
         elif FLAGS.mode == 'profile':
-            subprocess.run(['make8', 'build', TARGETS['simulation']], check=True)
+            build_simulation()
 
     olive_args = [
         '--simple-mode=detected_map',
@@ -196,13 +217,19 @@ def overlap(argv):
         f'--simulation_data_buffer_size={FLAGS.buffer_size}',
     ]
 
+    simulation_args = [
+        '--simple-mode=detected_map',
+        f'--remote-dir={FLAGS.dir}',
+        '--static_map_any_version',
+        '--road_graph_any_version',
+    ]
+
     profiler_args = [
         'profile',
         '--mode=cpu',
-        '--binary=./make8-bin/infrastructure/simulation/simulation_main',
         f'--cwd={os.getcwd()}',
-        '--args',
-        ' '.join(olive_args),
+        f"--binary={BINARY_PATHS['simulation']}",
+        f"--args={' '.join(simulation_args)}"
     ]
 
     if FLAGS.mode == 'olive':
