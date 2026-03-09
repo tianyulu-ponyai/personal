@@ -28,8 +28,10 @@ LANE_CONFIDENCE_RELATED_ISSUE_REMOTE_DIRS: List[str] = [
 ]
 
 LANE_LANE_OVERLAP_RELATED_ISSUE_REMOTE_DIRS: List[str] = [
+    '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20260107/k9043-112624-1767763796.atomic.zip',
     # jenkins latency-diff 20251103_k8101_192331_1762169901__1762170588-traffic-flow
     '/guangzhou/truncated_data_v2/manual/guangzhou/20250926/k8106-074958-1758847477__1758847974.atomic.zip',
+
 ]
 
 ISSUE_REMOTE_DIRS: Dict[str, List[str]] = {
@@ -183,10 +185,13 @@ def geometry_neighbor_test(argv):
 
 def lane_confidence(argv):
     if len(FLAGS.dir) == 0:
-        FLAGS.dir = ISSUE_REMOTE_DIRS['lane_lane_overlap'][FLAGS.index]
+        FLAGS.dir = ISSUE_REMOTE_DIRS['lane_confidence'][FLAGS.index]
 
     if FLAGS.build:
-        build_olive()
+        if FLAGS.mode == 'olive':
+            build_olive()
+        elif FLAGS.mode == 'profile':
+            build_simulation()
 
     olive_args = [
         '--simple-mode=detected_map',
@@ -196,7 +201,27 @@ def lane_confidence(argv):
         f'--simulation_data_buffer_size={FLAGS.buffer_size}',
     ]
 
-    subprocess.run([BINARY_PATHS['olive']] + olive_args, check=True)
+    simulation_args = [
+        '--simple-mode=detected_map',
+        f'--remote-dir={FLAGS.dir}',
+        '--static_map_any_version',
+        '--road_graph_any_version',
+    ]
+
+    profiler_args = [
+        'profile',
+        '--mode=cpu',
+        f'--cwd={os.getcwd()}',
+        f"--binary={BINARY_PATHS['simulation']}",
+        f"--args={' '.join(simulation_args)}"
+    ]
+
+    if FLAGS.mode == 'olive':
+        subprocess.run([BINARY_PATHS['olive']] + olive_args, check=True)
+    elif FLAGS.mode == 'profile':
+        subprocess.run([BINARY_PATHS['profile']] + profiler_args, check=True)
+        if FLAGS.upload:
+            subprocess.run([BINARY_PATHS['profile'], 'upload'], check=True)
 
 
 def overlap(argv):
@@ -247,5 +272,5 @@ if __name__ == '__main__':
     # app.run(common)
     # app.run(geometry_neighbor)
     # app.run(geometry_neighbor_test)
-    # app.run(lane_confidence)
-    app.run(overlap)
+    app.run(lane_confidence)
+    # app.run(overlap)
