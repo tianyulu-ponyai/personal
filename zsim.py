@@ -16,11 +16,13 @@ GEOMETRY_BASED_NEIGHBOR_CALCULATION_RELATED_ISSUE_REMOTE_DIRS: List[str] = [
     '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20260102/k9042-094931-1767324699.atomic.zip',
     # https://jira.corp.pony.ai/browse/RTI-42778510
     '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20260129/k9216-100455-1769655966.atomic.zip',
-    # jenkins latency-diff 20251103_k8101_192331_1762169901__1762170588-traffic-flow
+    # 20250926_k8106_074958_1758847477__1758847974-traffic-flow
     '/guangzhou/truncated_data_v2/manual/guangzhou/20250926/k8106-074958-1758847477__1758847974.atomic.zip',
 ]
 
 LANE_CONFIDENCE_RELATED_ISSUE_REMOTE_DIRS: List[str] = [
+    # 20250926_k8106_074958_1758847477__1758847974-traffic-flow
+    '/guangzhou/truncated_data_v2/manual/guangzhou/20250926/k8106-074958-1758847477__1758847974.atomic.zip',
     # https://jira.corp.pony.ai/browse/RTI-41364507
     '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20251228/p7050-084545-1766897859.atomic.zip',
     # https://jira.corp.pony.ai/browse/RTI-40669561
@@ -29,9 +31,8 @@ LANE_CONFIDENCE_RELATED_ISSUE_REMOTE_DIRS: List[str] = [
 
 LANE_LANE_OVERLAP_RELATED_ISSUE_REMOTE_DIRS: List[str] = [
     '/daxing/sensitive_data/truncated_data_v2/issue_bot/disengagement/20260107/k9043-112624-1767763796.atomic.zip',
-    # jenkins latency-diff 20251103_k8101_192331_1762169901__1762170588-traffic-flow
+    # 20250926_k8106_074958_1758847477__1758847974-traffic-flow
     '/guangzhou/truncated_data_v2/manual/guangzhou/20250926/k8106-074958-1758847477__1758847974.atomic.zip',
-
 ]
 
 ISSUE_REMOTE_DIRS: Dict[str, List[str]] = {
@@ -67,9 +68,9 @@ def define_flags():
 
     flags.DEFINE_enum(
         'mode',
-        'olive',
-        ['olive', 'profile'],
-        'Running mode',
+        'o',
+        ['o', 'p'],
+        'Running mode, o for olive, p for profile',
     )
 
     flags.DEFINE_bool(
@@ -102,6 +103,11 @@ def define_flags():
         'The index of the remote directory in the List that should be used',
     )
 
+    # aliases
+    flags.DEFINE_alias('b', 'build')
+    flags.DEFINE_alias('m', 'mode')
+    flags.DEFINE_alias('i', 'index')
+
 
 def build_olive():
     subprocess.run(['make8', 'build', TARGETS['olive']], check=True)
@@ -119,7 +125,6 @@ def common(argv):
     if len(FLAGS.dir) == 0:
         FLAGS.dir = ISSUE_REMOTE_DIRS['common'][FLAGS.index]
 
-    olive_target = 'olive_main'
     if FLAGS.build:
         build_olive()
 
@@ -139,9 +144,9 @@ def geometry_neighbor(argv):
         FLAGS.dir = ISSUE_REMOTE_DIRS['geometry_neighbor'][FLAGS.index]
 
     if FLAGS.build:
-        if FLAGS.mode == 'olive':
+        if FLAGS.mode == 'o':
             build_olive()
-        elif FLAGS.mode == 'profile':
+        elif FLAGS.mode == 'p':
             build_profiler()
 
     olive_args = [
@@ -165,13 +170,13 @@ def geometry_neighbor(argv):
         'profile',
         '--mode=cpu',
         f'--cwd={os.getcwd()}',
-        f"--binary={BINARY_PATHS['simulation']}",
-        f"--args={' '.join(simulation_args)}"
+        f'--binary={BINARY_PATHS["simulation"]}',
+        f'--args={" ".join(simulation_args)}',
     ]
 
-    if FLAGS.mode == 'olive':
+    if FLAGS.mode == 'o':
         subprocess.run([BINARY_PATHS['olive']] + olive_args, check=True)
-    elif FLAGS.mode == 'profile':
+    elif FLAGS.mode == 'p':
         subprocess.run([BINARY_PATHS['profile']] + profiler_args, check=True)
         if FLAGS.upload:
             subprocess.run([BINARY_PATHS['profile'], 'upload'], check=True)
@@ -188,9 +193,9 @@ def lane_confidence(argv):
         FLAGS.dir = ISSUE_REMOTE_DIRS['lane_confidence'][FLAGS.index]
 
     if FLAGS.build:
-        if FLAGS.mode == 'olive':
+        if FLAGS.mode == 'o':
             build_olive()
-        elif FLAGS.mode == 'profile':
+        elif FLAGS.mode == 'p':
             build_simulation()
 
     olive_args = [
@@ -212,13 +217,13 @@ def lane_confidence(argv):
         'profile',
         '--mode=cpu',
         f'--cwd={os.getcwd()}',
-        f"--binary={BINARY_PATHS['simulation']}",
-        f"--args={' '.join(simulation_args)}"
+        f'--binary={BINARY_PATHS["simulation"]}',
+        f'--args={" ".join(simulation_args)}',
     ]
 
-    if FLAGS.mode == 'olive':
+    if FLAGS.mode == 'o':
         subprocess.run([BINARY_PATHS['olive']] + olive_args, check=True)
-    elif FLAGS.mode == 'profile':
+    elif FLAGS.mode == 'p':
         subprocess.run([BINARY_PATHS['profile']] + profiler_args, check=True)
         if FLAGS.upload:
             subprocess.run([BINARY_PATHS['profile'], 'upload'], check=True)
@@ -229,9 +234,9 @@ def overlap(argv):
         FLAGS.dir = ISSUE_REMOTE_DIRS['lane_lane_overlap'][FLAGS.index]
 
     if FLAGS.build:
-        if FLAGS.mode == 'olive':
+        if FLAGS.mode == 'o':
             build_olive()
-        elif FLAGS.mode == 'profile':
+        elif FLAGS.mode == 'p':
             build_simulation()
 
     olive_args = [
@@ -253,13 +258,13 @@ def overlap(argv):
         'profile',
         '--mode=cpu',
         f'--cwd={os.getcwd()}',
-        f"--binary={BINARY_PATHS['simulation']}",
-        f"--args={' '.join(simulation_args)}"
+        f'--binary={BINARY_PATHS["simulation"]}',
+        f'--args={" ".join(simulation_args)}',
     ]
 
-    if FLAGS.mode == 'olive':
+    if FLAGS.mode == 'o':
         subprocess.run([BINARY_PATHS['olive']] + olive_args, check=True)
-    elif FLAGS.mode == 'profile':
+    elif FLAGS.mode == 'p':
         subprocess.run([BINARY_PATHS['profile']] + profiler_args, check=True)
         if FLAGS.upload:
             subprocess.run([BINARY_PATHS['profile'], 'upload'], check=True)
